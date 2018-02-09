@@ -2,15 +2,25 @@ package com.cowbell.cordova.geofence;
 
 import android.app.IntentService;
 import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingEvent;
 
+import java.io.BufferedWriter;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.net.ssl.HttpsURLConnection;
 
 public class ReceiveTransitionsIntentService extends IntentService {
     protected static final String GeofenceTransitionIntent = "com.cowbell.cordova.geofence.TRANSITION";
@@ -88,6 +98,54 @@ public class ReceiveTransitionsIntentService extends IntentService {
                 broadcastIntent.putExtra("error", error);
             }
         }
+
         sendBroadcast(broadcastIntent);
+
+        List<Geofence> triggerList = geofencingEvent.getTriggeringGeofences();
+        List<GeoNotification> geoNotifications = new ArrayList<GeoNotification>();
+        for (Geofence fence : triggerList) {
+            String fenceId = fence.getRequestId();
+            GeoNotification geoNotification = store
+                    .getGeoNotification(fenceId);
+
+            if (geoNotification != null) {
+                if (geoNotification.url != null) {
+                    try {
+                        URL url = new URL(geoNotification.url);
+                        HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+                        conn.setReadTimeout(10000);
+                        conn.setConnectTimeout(15000);
+                        conn.setRequestMethod("POST");
+                        conn.setDoInput(true);
+                        conn.setDoOutput(true);
+
+                        if (geoNotification.authorization != null) {
+                            conn.setRequestProperty("Authorization", geoNotification.authorization);
+                        }
+                        conn.setRequestProperty("Content-Type", "application/json");
+
+                        int transitionType = geofencingEvent.getGeofenceTransition();
+                        String transition = null;
+                        if (transitionType == Geofence.GEOFENCE_TRANSITION_ENTER) transition = "ENTER";
+                        if (transitionType == Geofence.GEOFENCE_TRANSITION_EXIT) transition = "EXIT";
+
+                        OutputStream os = conn.getOutputStream();
+                        BufferedWriter writer = new BufferedWriter(
+                                new OutputStreamWriter(os, "UTF-8"));
+                        writer.write("{ \"geofenceId\": \"" + geoNotification.id + " \",  \"transition\": \"" + transition + "\" }");
+                        writer.flush();
+                        writer.close();
+                        os.close();
+
+                        conn.connect();
+                        int responseCode = conn.getResponseCode();
+                        Log.i(GeofencePlugin.TAG, "Send Geofence transition to server: " + responseCode);
+                    } catch (Exception e) {
+                        Log.e(GeofencePlugin.TAG, "Error while sending geofence transition", e);
+                    }
+                }
+            }
+        }
+
     }
 }

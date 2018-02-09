@@ -10,6 +10,9 @@ public class GeoNotification {
     @Expose public int radius;
     @Expose public int transitionType;
 
+    @Expose public String url;
+    @Expose public String authorization;
+
     @Expose public Notification notification;
 
     public GeoNotification() {
