@@ -397,6 +397,36 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
                 notifyAbout(geoNotification)
             }
 
+            if geoNotification["url"].isExists() {
+                log("Should post to " + geoNotification["url"].stringValue)
+                let url = URL(string: geoNotification["url"].stringValue)!
+                let jsonDict = ["geofenceId": geoNotification["id"].stringValue, "transitionType": geoNotification["transitionType"].stringValue]
+                let jsonData = try! JSONSerialization.data(withJSONObject: jsonDict, options: [])
+                
+                var request = URLRequest(url: url)
+                request.httpMethod = "post"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.setValue(geoNotification["authorization"].stringValue, forHTTPHeaderField: "Authorization")
+                request.httpBody = jsonData
+                
+                let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+                    if let error = error {
+                        print("error:", error)
+                        return
+                    }
+                    
+                    do {
+                        guard let data = data else { return }
+                        guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: AnyObject] else { return }
+                        print("json:", json)
+                    } catch {
+                        print("error:", error)
+                    }
+                }
+                
+                task.resume()
+            }
+            
             NotificationCenter.default.post(name: Notification.Name(rawValue: "handleTransition"), object: geoNotification.rawString(String.Encoding.utf8.rawValue, options: []))
         }
     }
@@ -447,6 +477,7 @@ class GeoNotificationStore {
     }
 
     func addOrUpdate(_ geoNotification: JSON) {
+        NSLog("geoNotification.description: %@", geoNotification.description)
         if (findById(geoNotification["id"].stringValue) != nil) {
             update(geoNotification)
         }
