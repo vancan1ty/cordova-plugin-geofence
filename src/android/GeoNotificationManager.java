@@ -10,7 +10,6 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.Geofence;
 
 import org.apache.cordova.CallbackContext;
-import org.apache.cordova.PluginResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -108,9 +107,10 @@ public class GeoNotificationManager {
      * geofence transition occurs.
      */
     private PendingIntent getTransitionPendingIntent() {
-        Intent intent = new Intent(context, ReceiveTransitionsIntentService.class);
-        logger.log(Log.DEBUG, "Geofence Intent created!");
-        return PendingIntent.getService(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent intent = new Intent(context, ReceiveTransitionsReceiver.class);
+        //intent.setAction(ReceiveTransitionsReceiver.GeofenceTransitionIntent);
+        logger.log(Log.DEBUG, "Geofence broadcast intent created");
+        return PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
 }
