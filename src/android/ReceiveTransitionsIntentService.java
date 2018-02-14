@@ -99,7 +99,8 @@ public class ReceiveTransitionsIntentService extends IntentService {
             }
         }
 
-        sendBroadcast(broadcastIntent);
+		// Disabled, not allowed on Android 8
+        // sendBroadcast(broadcastIntent);
 
         List<Geofence> triggerList = geofencingEvent.getTriggeringGeofences();
         List<GeoNotification> geoNotifications = new ArrayList<GeoNotification>();
