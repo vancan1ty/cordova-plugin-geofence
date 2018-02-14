@@ -29,10 +29,9 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
     /**
      * Handles incoming intents
      *
-     * @param intent
-     *            The Intent sent by Location Services. This Intent is provided
-     *            to Location Services (inside a PendingIntent) when you call
-     *            addGeofences()
+     * @param intent The Intent sent by Location Services. This Intent is provided
+     *               to Location Services (inside a PendingIntent) when you call
+     *               addGeofences()
      */
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -41,10 +40,10 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
         Logger.setLogger(new Logger(GeofencePlugin.TAG, context, false));
         Logger logger = Logger.getLogger();
         logger.log(Log.DEBUG, "ReceiveTransitionsIntentService - onHandleIntent");
-        Intent broadcastIntent = new Intent(GeofenceTransitionIntent);
+        //Intent broadcastIntent = new Intent(GeofenceTransitionIntent);
         notifier = new GeoNotificationNotifier(
-            (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE),
-            context
+                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE),
+                context
         );
 
         // TODO: refactor this, too long
@@ -56,50 +55,56 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
             String error = "Location Services error: " + Integer.toString(errorCode);
             // Log the error
             logger.log(Log.ERROR, error);
-            broadcastIntent.putExtra("error", error);
+            //broadcastIntent.putExtra("error", error);
         } else {
             // Get the type of transition (entry or exit)
             int transitionType = geofencingEvent.getGeofenceTransition();
-            if ((transitionType == Geofence.GEOFENCE_TRANSITION_ENTER)
-                    || (transitionType == Geofence.GEOFENCE_TRANSITION_EXIT)) {
-                logger.log(Log.DEBUG, "Geofence transition detected");
-                List<Geofence> triggerList = geofencingEvent.getTriggeringGeofences();
-                List<GeoNotification> geoNotifications = new ArrayList<GeoNotification>();
-                for (Geofence fence : triggerList) {
-                    String fenceId = fence.getRequestId();
-                    GeoNotification geoNotification = store
-                            .getGeoNotification(fenceId);
 
-                    if (geoNotification != null) {
-                        if (geoNotification.notification != null) {
-                            notifier.notify(geoNotification.notification);
-                        }
-                        geoNotification.transitionType = transitionType;
-                        geoNotifications.add(geoNotification);
-                    }
+            List<Geofence> triggerList = geofencingEvent.getTriggeringGeofences();
+            List<GeoNotification> geoNotifications = new ArrayList<>();
+            for (Geofence fence : triggerList) {
+                String fenceId = fence.getRequestId();
+                GeoNotification geoNotification = store
+                        .getGeoNotification(fenceId);
+
+                if (geoNotification != null) {
+                    geoNotification.transitionType = transitionType;
+                    geoNotifications.add(geoNotification);
                 }
+            }
+
+            if (transitionType == Geofence.GEOFENCE_TRANSITION_ENTER
+                    || transitionType == Geofence.GEOFENCE_TRANSITION_EXIT) {
+                logger.log(Log.DEBUG, "Geofence transition detected");
 
                 if (geoNotifications.size() > 0) {
-                    broadcastIntent.putExtra("transitionData", Gson.get().toJson(geoNotifications));
+                    for (GeoNotification geoNotification : geoNotifications) {
+                        if (geoNotification.notification != null) {
+                            notifier.notify(geoNotification.notification,
+                                    transitionType == Geofence.GEOFENCE_TRANSITION_ENTER ? "enter" : "exit");
+                        }
+                    }
+
+                    //broadcastIntent.putExtra("transitionData", Gson.get().toJson(geoNotifications));
+                    GeofencePlugin.onTransitionReceived(geoNotifications);
+                }
+            } else if (transitionType == Geofence.GEOFENCE_TRANSITION_DWELL) {
+                logger.log(Log.DEBUG, "Geofence transition dwell detected");
+
+                if (geoNotifications.size() > 0) {
+                    //broadcastIntent.putExtra("transitionData", Gson.get().toJson(geoNotifications));
                     GeofencePlugin.onTransitionReceived(geoNotifications);
                 }
             } else {
                 String error = "Geofence transition error: " + transitionType;
                 logger.log(Log.ERROR, error);
-                broadcastIntent.putExtra("error", error);
+                //broadcastIntent.putExtra("error", error);
             }
-        }
 
-        //sendBroadcast(broadcastIntent);
 
-        List<Geofence> triggerList = geofencingEvent.getTriggeringGeofences();
-        List<GeoNotification> geoNotifications = new ArrayList<GeoNotification>();
-        for (Geofence fence : triggerList) {
-            String fenceId = fence.getRequestId();
-            GeoNotification geoNotification = store
-                    .getGeoNotification(fenceId);
+            //sendBroadcast(broadcastIntent);
 
-            if (geoNotification != null) {
+            for (GeoNotification geoNotification : geoNotifications) {
                 if (geoNotification.url != null) {
                     new Thread(() -> {
                         try {
@@ -116,10 +121,11 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                             }
                             conn.setRequestProperty("Content-Type", "application/json");
 
-                            int transitionType = geofencingEvent.getGeofenceTransition();
                             String transition = null;
                             if (transitionType == Geofence.GEOFENCE_TRANSITION_ENTER)
                                 transition = "ENTER";
+                            if (transitionType == Geofence.GEOFENCE_TRANSITION_DWELL)
+                                transition = "DWELL";
                             if (transitionType == Geofence.GEOFENCE_TRANSITION_EXIT)
                                 transition = "EXIT";
 
@@ -139,6 +145,7 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                         }
                     }).start();
                 }
+
             }
         }
 
