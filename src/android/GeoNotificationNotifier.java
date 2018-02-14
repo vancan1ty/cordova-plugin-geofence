@@ -31,7 +31,7 @@ public class GeoNotificationNotifier {
         }
     }
 
-    public void notify(Notification notification) {
+    public void notify(Notification notification, String transition) {
         notification.setContext(context);
         NotificationCompat.Builder mBuilder = null;
 
@@ -44,7 +44,7 @@ public class GeoNotificationNotifier {
                 .setSmallIcon(notification.getSmallIcon())
                 .setLargeIcon(notification.getLargeIcon())
                 .setAutoCancel(true)
-                .setContentTitle(notification.getTitle())
+                .setContentTitle(notification.getTitle().replace("$transition", transition))
                 .setContentText(notification.getText());
 
         if (notification.openAppOnClick) {
