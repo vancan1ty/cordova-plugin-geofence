@@ -126,7 +126,7 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                             OutputStream os = conn.getOutputStream();
                             BufferedWriter writer = new BufferedWriter(
                                     new OutputStreamWriter(os, "UTF-8"));
-                            writer.write("{ \"geofenceId\": \"" + geoNotification.id + " \",  \"transition\": \"" + transition + "\" }");
+                            writer.write("{ \"geofenceId\": \"" + geoNotification.id + "\",  \"transition\": \"" + transition + "\" }");
                             writer.flush();
                             writer.close();
                             os.close();
