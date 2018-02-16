@@ -10,8 +10,10 @@ import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingEvent;
 
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -108,46 +110,29 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                 if (geoNotification.url != null) {
                     Thread thread = new Thread(() -> {
                         try {
-                            URL url = new URL(geoNotification.url);
-                            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                            conn.setReadTimeout(10000);
-                            conn.setConnectTimeout(15000);
-                            conn.setRequestMethod("POST");
-                            conn.setDoInput(true);
-                            conn.setDoOutput(true);
+                            sendTransitionToServer(transitionType, geoNotification);
+                        } catch (ConnectException connectException) {
+                            // It is possible to have no network during transition from Cellular to Wifi
+                            Log.e(GeofencePlugin.TAG, "Error while sending geofence transition, sleeping for awhile before retrying", connectException);
 
-                            if (geoNotification.authorization != null) {
-                                conn.setRequestProperty("Authorization", geoNotification.authorization);
+                            try {
+                                Thread.sleep(2000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
                             }
-                            conn.setRequestProperty("Content-Type", "application/json");
 
-                            String transition = null;
-                            if (transitionType == Geofence.GEOFENCE_TRANSITION_ENTER)
-                                transition = "ENTER";
-                            if (transitionType == Geofence.GEOFENCE_TRANSITION_DWELL)
-                                transition = "DWELL";
-                            if (transitionType == Geofence.GEOFENCE_TRANSITION_EXIT)
-                                transition = "EXIT";
-
-                            OutputStream os = conn.getOutputStream();
-                            BufferedWriter writer = new BufferedWriter(
-                                    new OutputStreamWriter(os, "UTF-8"));
-                            writer.write("{ \"geofenceId\": \"" + geoNotification.id + "\",  \"transition\": \"" + transition + "\" }");
-                            writer.flush();
-                            writer.close();
-                            os.close();
-
-                            conn.connect();
-                            int responseCode = conn.getResponseCode();
-                            Log.i(GeofencePlugin.TAG, "Send Geofence transition to server: " + responseCode);
+                            try {
+                                sendTransitionToServer(transitionType, geoNotification);
+                            } catch (Exception e) {
+                                Log.e(GeofencePlugin.TAG, "Error while retry sending geofence transition", e);
+                            }
                         } catch (Exception e) {
-                            Log.e(GeofencePlugin.TAG, "Error while sending geofence transition", e);
+                            Log.e(GeofencePlugin.TAG, "Unknown error while sending geofence transition", e);
                         }
                     });
                     postThreads.add(thread);
                     thread.start();
                 }
-
             }
 
             // Wait for threads to finish
@@ -160,5 +145,40 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
             }
         }
 
+    }
+
+    private void sendTransitionToServer(int transitionType, GeoNotification geoNotification) throws IOException {
+        URL url = new URL(geoNotification.url);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setReadTimeout(10000);
+        conn.setConnectTimeout(15000);
+        conn.setRequestMethod("POST");
+        conn.setDoInput(true);
+        conn.setDoOutput(true);
+
+        if (geoNotification.authorization != null) {
+            conn.setRequestProperty("Authorization", geoNotification.authorization);
+        }
+        conn.setRequestProperty("Content-Type", "application/json");
+
+        String transition = null;
+        if (transitionType == Geofence.GEOFENCE_TRANSITION_ENTER)
+            transition = "ENTER";
+        if (transitionType == Geofence.GEOFENCE_TRANSITION_DWELL)
+            transition = "DWELL";
+        if (transitionType == Geofence.GEOFENCE_TRANSITION_EXIT)
+            transition = "EXIT";
+
+        OutputStream os = conn.getOutputStream();
+        BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(os, "UTF-8"));
+        writer.write("{ \"geofenceId\": \"" + geoNotification.id + "\",  \"transition\": \"" + transition + "\" }");
+        writer.flush();
+        writer.close();
+        os.close();
+
+        conn.connect();
+        int responseCode = conn.getResponseCode();
+        Log.i(GeofencePlugin.TAG, "Send Geofence transition to server: " + responseCode);
     }
 }
