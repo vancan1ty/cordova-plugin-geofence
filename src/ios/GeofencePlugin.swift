@@ -400,7 +400,7 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
             if geoNotification["url"].isExists() {
                 log("Should post to " + geoNotification["url"].stringValue)
                 let url = URL(string: geoNotification["url"].stringValue)!
-                let jsonDict = ["geofenceId": geoNotification["id"].stringValue, "transitionType": geoNotification["transitionType"].stringValue]
+                let jsonDict = ["geofenceId": geoNotification["id"].stringValue, "transition": geoNotification["transitionType"].intValue == 1 ? "ENTER" : "EXIT"]
                 let jsonData = try! JSONSerialization.data(withJSONObject: jsonDict, options: [])
                 
                 var request = URLRequest(url: url)
