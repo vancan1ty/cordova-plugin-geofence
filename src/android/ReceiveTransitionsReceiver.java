@@ -103,10 +103,10 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
 
 
             //sendBroadcast(broadcastIntent);
-
+            List<Thread> postThreads = new ArrayList<>();
             for (GeoNotification geoNotification : geoNotifications) {
                 if (geoNotification.url != null) {
-                    new Thread(() -> {
+                    Thread thread = new Thread(() -> {
                         try {
                             URL url = new URL(geoNotification.url);
                             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -143,9 +143,20 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                         } catch (Exception e) {
                             Log.e(GeofencePlugin.TAG, "Error while sending geofence transition", e);
                         }
-                    }).start();
+                    });
+                    postThreads.add(thread);
+                    thread.start();
                 }
 
+            }
+
+            // Wait for threads to finish
+            for (Thread thread : postThreads) {
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    Log.e(GeofencePlugin.TAG, "Error while joining post thread", e);
+                }
             }
         }
 
