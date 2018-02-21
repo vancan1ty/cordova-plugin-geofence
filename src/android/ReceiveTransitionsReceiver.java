@@ -126,8 +126,6 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                             } catch (Exception e) {
                                 Log.e(GeofencePlugin.TAG, "Error while retry sending geofence transition", e);
                             }
-                        } catch (Exception e) {
-                            Log.e(GeofencePlugin.TAG, "Unknown error while sending geofence transition", e);
                         }
                     });
                     postThreads.add(thread);
