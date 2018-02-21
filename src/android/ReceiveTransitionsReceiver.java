@@ -111,9 +111,9 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                     Thread thread = new Thread(() -> {
                         try {
                             sendTransitionToServer(transitionType, geoNotification);
-                        } catch (ConnectException connectException) {
+                        } catch (Exception exception) {
                             // It is possible to have no network during transition from Cellular to Wifi
-                            Log.e(GeofencePlugin.TAG, "Error while sending geofence transition, sleeping for awhile before retrying", connectException);
+                            Log.e(GeofencePlugin.TAG, "Error while sending geofence transition, sleeping for awhile before retrying", exception);
 
                             try {
                                 Thread.sleep(2000);
@@ -147,7 +147,7 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
 
     }
 
-    private void sendTransitionToServer(int transitionType, GeoNotification geoNotification) throws IOException {
+    private void sendTransitionToServer(int transitionType, GeoNotification geoNotification) throws Exception {
         URL url = new URL(geoNotification.url);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setReadTimeout(10000);
