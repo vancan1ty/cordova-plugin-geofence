@@ -44,6 +44,7 @@
         <source-file src="src/android/Logger.java" target-dir="src/com/cowbell/cordova/geofence" />
         <source-file src="src/android/Notification.java" target-dir="src/com/cowbell/cordova/geofence" />
         <source-file src="src/android/ReceiveTransitionsReceiver.java" target-dir="src/com/cowbell/cordova/geofence" />
+		<source-file src="src/android/TransitionJobService.java" target-dir="src/com/cowbell/cordova/geofence" />
         <source-file src="src/android/RemoveGeofenceCommand.java" target-dir="src/com/cowbell/cordova/geofence" />
 
 		<preference name="GOOGLE_API_VERSION" default="11.6.2" />
@@ -67,7 +68,15 @@
                 </intent-filter>
             </receiver>
         </config-file>
-
+		
+		<config-file target="AndroidManifest.xml" parent="/manifest/application">
+			<service
+		        android:name="com.cowbell.cordova.geofence.TransitionJobService"
+		        android:permission="android.permission.BIND_JOB_SERVICE"
+		        android:exported="true">
+		    </service>
+		</config-file>
+		
         <config-file target="AndroidManifest.xml" parent="/manifest">
             <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
             <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />

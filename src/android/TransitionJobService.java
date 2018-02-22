@@ -110,7 +110,7 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
 
 
             //sendBroadcast(broadcastIntent);
-
+            List<Thread> postThreads = new ArrayList<>();
             for (GeoNotification geoNotification : geoNotifications) {
                 if (geoNotification.url != null) {
                     String transition = null;
@@ -128,8 +128,6 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                     bundle.putString("transition", transition);
                     bundle.putString("date", new Date().toString());
 
-                    Log.i(GeofencePlugin.TAG, "Scheduling job for " + geoNotification.toJson());
-
                     JobScheduler jobScheduler =
                             (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
                     jobScheduler.schedule(
@@ -138,6 +136,15 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                                     .setExtras(bundle)
                                     .build()
                     );
+                }
+            }
+
+            // Wait for threads to finish
+            for (Thread thread : postThreads) {
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    Log.e(GeofencePlugin.TAG, "Error while joining post thread", e);
                 }
             }
         }
