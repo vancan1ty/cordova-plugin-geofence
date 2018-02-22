@@ -1,155 +1,79 @@
 package com.cowbell.cordova.geofence;
 
-import android.app.NotificationManager;
-import android.app.job.JobInfo;
-import android.app.job.JobScheduler;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
+import android.app.job.JobParameters;
+import android.app.job.JobService;
 import android.os.PersistableBundle;
 import android.util.Log;
 
 import com.google.android.gms.location.Geofence;
-import com.google.android.gms.location.GeofencingEvent;
 
 import java.io.BufferedWriter;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
-import javax.net.ssl.HttpsURLConnection;
+/**
+ * Created by jupe on 22-02-18.
+ */
 
-// https://codelabs.developers.google.com/codelabs/background-location-updates-android-o/#4
-public class ReceiveTransitionsReceiver extends BroadcastReceiver {
-    protected static final String GeofenceTransitionIntent = "com.cowbell.cordova.geofence.TRANSITION";
-    protected BeepHelper beepHelper;
-    protected GeoNotificationNotifier notifier;
-    protected GeoNotificationStore store;
+public class TransitionJobService extends JobService {
 
-    /**
-     * Handles incoming intents
-     *
-     * @param intent The Intent sent by Location Services. This Intent is provided
-     *               to Location Services (inside a PendingIntent) when you call
-     *               addGeofences()
-     */
     @Override
-    public void onReceive(Context context, Intent intent) {
-        beepHelper = new BeepHelper();
-        store = new GeoNotificationStore(context);
-        Logger.setLogger(new Logger(GeofencePlugin.TAG, context, false));
-        Logger logger = Logger.getLogger();
-        logger.log(Log.DEBUG, "ReceiveTransitionsIntentService - onHandleIntent");
-        //Intent broadcastIntent = new Intent(GeofenceTransitionIntent);
-        notifier = new GeoNotificationNotifier(
-                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE),
-                context
-        );
+    public boolean onStartJob(final JobParameters jobParameters) {
+        PersistableBundle params = jobParameters.getExtras();
+        final String url = params.getString("url");
+        final String authorization = params.getString("authorization");
+        final String id = params.getString("id");
+        final String transition = params.getString("transition");
+        final String date = params.getString("date");
 
-        // TODO: refactor this, too long
-        // First check for errors
-        GeofencingEvent geofencingEvent = GeofencingEvent.fromIntent(intent);
-        if (geofencingEvent.hasError()) {
-            // Get the error code with a static method
-            int errorCode = geofencingEvent.getErrorCode();
-            String error = "Location Services error: " + Integer.toString(errorCode);
-            // Log the error
-            logger.log(Log.ERROR, error);
-            //broadcastIntent.putExtra("error", error);
-        } else {
-            // Get the type of transition (entry or exit)
-            int transitionType = geofencingEvent.getGeofenceTransition();
-
-            List<Geofence> triggerList = geofencingEvent.getTriggeringGeofences();
-            List<GeoNotification> geoNotifications = new ArrayList<>();
-            for (Geofence fence : triggerList) {
-                String fenceId = fence.getRequestId();
-                GeoNotification geoNotification = store
-                        .getGeoNotification(fenceId);
-
-                if (geoNotification != null) {
-                    geoNotification.transitionType = transitionType;
-                    geoNotifications.add(geoNotification);
-                }
+        Thread thread = new Thread(() -> {
+            try {
+                sendTransitionToServer(url, authorization, id, transition, date);
+                jobFinished(jobParameters, false);
+            } catch (Exception exception) {
+                // It is possible to have no network during transition from Cellular to Wifi
+                Log.e(GeofencePlugin.TAG, "Error while sending geofence transition, rescheduling", exception);
+                jobFinished(jobParameters, true);
             }
+        });
+        thread.start();
 
-            if (transitionType == Geofence.GEOFENCE_TRANSITION_ENTER
-                    || transitionType == Geofence.GEOFENCE_TRANSITION_EXIT) {
-                logger.log(Log.DEBUG, "Geofence transition detected");
-
-                if (geoNotifications.size() > 0) {
-                    for (GeoNotification geoNotification : geoNotifications) {
-                        if (geoNotification.notification != null) {
-                            notifier.notify(geoNotification.notification,
-                                    transitionType == Geofence.GEOFENCE_TRANSITION_ENTER ? "enter" : "exit");
-                        }
-                    }
-
-                    //broadcastIntent.putExtra("transitionData", Gson.get().toJson(geoNotifications));
-                    GeofencePlugin.onTransitionReceived(geoNotifications);
-                }
-            } else if (transitionType == Geofence.GEOFENCE_TRANSITION_DWELL) {
-                logger.log(Log.DEBUG, "Geofence transition dwell detected");
-
-                if (geoNotifications.size() > 0) {
-                    //broadcastIntent.putExtra("transitionData", Gson.get().toJson(geoNotifications));
-                    GeofencePlugin.onTransitionReceived(geoNotifications);
-                }
-            } else {
-                String error = "Geofence transition error: " + transitionType;
-                logger.log(Log.ERROR, error);
-                //broadcastIntent.putExtra("error", error);
-            }
-
-
-            //sendBroadcast(broadcastIntent);
-            List<Thread> postThreads = new ArrayList<>();
-            for (GeoNotification geoNotification : geoNotifications) {
-                if (geoNotification.url != null) {
-                    String transition = null;
-                    if (transitionType == Geofence.GEOFENCE_TRANSITION_ENTER)
-                        transition = "ENTER";
-                    if (transitionType == Geofence.GEOFENCE_TRANSITION_DWELL)
-                        transition = "DWELL";
-                    if (transitionType == Geofence.GEOFENCE_TRANSITION_EXIT)
-                        transition = "EXIT";
-
-                    PersistableBundle bundle = new PersistableBundle();
-                    bundle.putString("id", geoNotification.id);
-                    bundle.putString("url", geoNotification.url);
-                    bundle.putString("authorization", geoNotification.authorization);
-                    bundle.putString("transition", transition);
-                    bundle.putString("date", new Date().toString());
-
-                    JobScheduler jobScheduler =
-                            (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-                    jobScheduler.schedule(
-                            new JobInfo.Builder(1, new ComponentName(context, TransitionJobService.class))
-                                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                                    .setExtras(bundle)
-                                    .build()
-                    );
-                }
-            }
-
-            // Wait for threads to finish
-            for (Thread thread : postThreads) {
-                try {
-                    thread.join();
-                } catch (InterruptedException e) {
-                    Log.e(GeofencePlugin.TAG, "Error while joining post thread", e);
-                }
-            }
-        }
-
+        return true; // Async
     }
 
+    @Override
+    public boolean onStopJob(JobParameters jobParameters) {
+        return false;
+    }
 
+    private void sendTransitionToServer(String urlString, String authorization, String id, String transition, String date) throws Exception {
+        URL url = new URL(urlString);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setReadTimeout(10000);
+        conn.setConnectTimeout(15000);
+        conn.setRequestMethod("POST");
+        conn.setDoInput(true);
+        conn.setDoOutput(true);
+
+        if (authorization != null) {
+            conn.setRequestProperty("Authorization", authorization);
+        }
+        conn.setRequestProperty("Content-Type", "application/json");
+
+        OutputStream os = conn.getOutputStream();
+        BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(os, "UTF-8"));
+        String json = "{ \"geofenceId\": \"" + id + "\",  \"transition\": \"" + transition + "\", \"date\": \"" + date +"\" }";
+        Log.i(GeofencePlugin.TAG, "Sending Geofence transition to server: " + json);
+        writer.write(json);
+        writer.flush();
+        writer.close();
+        os.close();
+
+        conn.connect();
+        int responseCode = conn.getResponseCode();
+        Log.i(GeofencePlugin.TAG, "Send Geofence transition to server: " + responseCode);
+    }
 }
