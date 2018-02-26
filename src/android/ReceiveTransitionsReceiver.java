@@ -130,7 +130,7 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
 					TimeZone tz = TimeZone.getTimeZone("UTC");
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 					df.setTimeZone(tz);
-                    bundle.putString("date", df.format(new Date());
+                    bundle.putString("date", df.format(new Date()));
 
                     Log.i(GeofencePlugin.TAG, "Scheduling job for " + geoNotification.toJson());
 
