@@ -57,10 +57,15 @@ public class GeoNotificationNotifier {
                 resultIntent.putExtra("geofence.notification.data", notification.getDataJson());
             }
 
-            TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
-            stackBuilder.addNextIntent(resultIntent);
-            PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(
-                    notification.id, PendingIntent.FLAG_UPDATE_CURRENT);
+            resultIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+            PendingIntent resultPendingIntent =
+                    PendingIntent.getActivity(context,
+                            1001,
+                            resultIntent,
+                            PendingIntent.FLAG_UPDATE_CURRENT
+                    );
+
             mBuilder.setContentIntent(resultPendingIntent);
         }
         try {
