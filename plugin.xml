@@ -121,7 +121,7 @@
 
     <!-- ios -->
     <platform name="ios">
-        <preference name="GEOFENCE_ALWAYS_USAGE_DESCRIPTION" default="${EXECUTABLE_NAME} Would Like to Use Your Current Location Even In Background." />
+        <preference name="GEOFENCE_ALWAYS_USAGE_DESCRIPTION" default="${EXECUTABLE_NAME} would like to use your location to determine proximity to walks and points of interest." />
         <config-file target="*-Info.plist" parent="NSLocationAlwaysAndWhenInUseUsageDescription">
             <string>$GEOFENCE_ALWAYS_USAGE_DESCRIPTION</string>
         </config-file>
@@ -129,7 +129,7 @@
             <string>$GEOFENCE_ALWAYS_USAGE_DESCRIPTION</string>
         </config-file>
 
-        <preference name="GEOFENCE_IN_USE_USAGE_DESCRIPTION" default="${EXECUTABLE_NAME} Would Like to Use Your Current Location When In Use." />
+        <preference name="GEOFENCE_IN_USE_USAGE_DESCRIPTION" default="${EXECUTABLE_NAME} uses your location to determine proximity to walks and points of interest." />
         <config-file target="*-Info.plist" parent="NSLocationWhenInUseUsageDescription">
             <string>$GEOFENCE_IN_USE_USAGE_DESCRIPTION</string>
         </config-file>
