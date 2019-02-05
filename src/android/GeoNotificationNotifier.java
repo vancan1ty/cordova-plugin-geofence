@@ -41,6 +41,7 @@ public class GeoNotificationNotifier {
             mBuilder = new NotificationCompat.Builder(context);
         }
         mBuilder.setVibrate(notification.getVibrate())
+                .setColor(notification.getColor())
                 .setSmallIcon(notification.getSmallIcon())
                 .setLargeIcon(notification.getLargeIcon())
                 .setAutoCancel(true)
