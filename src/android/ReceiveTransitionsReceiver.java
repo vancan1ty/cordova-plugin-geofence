@@ -77,7 +77,7 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                 GeoNotification geoNotification = store
                         .getGeoNotification(fenceId);
 
-                if (geoNotification != null) {
+                if (geoNotification != null && geoNotification.isWithinTimeRange()) {
                     geoNotification.transitionType = transitionType;
                     geoNotifications.add(geoNotification);
                 }

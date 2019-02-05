@@ -389,52 +389,78 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
         log("Monitoring region " + region!.identifier + " failed \(error)" )
     }
 
-    func handleTransition(_ region: CLRegion!, transitionType: Int) {
+    func handleTransition(region: CLRegion!, transitionType: Int) {
         if var geoNotification = store.findById(region.identifier) {
-            geoNotification["transitionType"].int = transitionType
+            if isWithinTimeRange(geoNotification) {
+                geoNotification["transitionType"].int = transitionType
 
-            if geoNotification["notification"].isExists() {
-                notifyAbout(geoNotification)
-            }
+                if geoNotification["notification"].isExists() {
+                    notifyAbout(geoNotification)
+                }
 
-            if geoNotification["url"].isExists() {
-                log("Should post to " + geoNotification["url"].stringValue)
-                let url = URL(string: geoNotification["url"].stringValue)!
-                
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-                dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
-                //formatter.locale = Locale(identifier: "en_US")
-                
-                let jsonDict = ["geofenceId": geoNotification["id"].stringValue, "transition": geoNotification["transitionType"].intValue == 1 ? "ENTER" : "EXIT", "date": dateFormatter.string(from: Date())]
-                let jsonData = try! JSONSerialization.data(withJSONObject: jsonDict, options: [])
-                
-                var request = URLRequest(url: url)
-                request.httpMethod = "post"
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                request.setValue(geoNotification["authorization"].stringValue, forHTTPHeaderField: "Authorization")
-                request.httpBody = jsonData
-                
-                let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-                    if let error = error {
-                        print("error:", error)
-                        return
+                if geoNotification["url"].isExists() {
+                    log("Should post to " + geoNotification["url"].stringValue)
+                    let url = URL(string: geoNotification["url"].stringValue)!
+                    
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+                    dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+                    //formatter.locale = Locale(identifier: "en_US")
+                    
+                    let jsonDict = ["geofenceId": geoNotification["id"].stringValue, "transition": geoNotification["transitionType"].intValue == 1 ? "ENTER" : "EXIT", "date": dateFormatter.string(from: Date())]
+                    let jsonData = try! JSONSerialization.data(withJSONObject: jsonDict, options: [])
+                    
+                    var request = URLRequest(url: url)
+                    request.httpMethod = "post"
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    request.setValue(geoNotification["authorization"].stringValue, forHTTPHeaderField: "Authorization")
+                    request.httpBody = jsonData
+                    
+                    let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+                        if let error = error {
+                            print("error:", error)
+                            return
+                        }
+                        
+                        do {
+                            guard let data = data else { return }
+                            guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: AnyObject] else { return }
+                            print("json:", json)
+                        } catch {
+                            print("error:", error)
+                        }
                     }
                     
-                    do {
-                        guard let data = data else { return }
-                        guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: AnyObject] else { return }
-                        print("json:", json)
-                    } catch {
-                        print("error:", error)
-                    }
+                    task.resume()
                 }
                 
-                task.resume()
+                NotificationCenter.default.post(name: Notification.Name(rawValue: "handleTransition"), object: geoNotification.rawString(String.Encoding.utf8.rawValue, options: []))
             }
-            
-            NotificationCenter.default.post(name: Notification.Name(rawValue: "handleTransition"), object: geoNotification.rawString(String.Encoding.utf8.rawValue, options: []))
         }
+    }
+
+    func isWithinTimeRange(geoNotification: JSON) -> Bool {
+        let now = NSDate()
+        var greaterThanOrEqualToStartTime: Bool = true
+        var lessThanEndTime: Bool = true
+        if geoNotification["startTime"].isExists() {
+            if let startTime = parseDate(geoNotification["startTime"].string) {
+                greaterThanOrEqualToStartTime = (now.compare(startTime) == NSComparisonResult.OrderedDescending || now.compare(startTime) == NSComparisonResult.OrderedSame)
+            }
+        }
+        if geoNotification["endTime"].isExists() {
+            if let endTime = parseDate(geoNotification["endTime"].string) {
+                lessThanEndTime = now.compare(endTime) == NSComparisonResult.OrderedAscending
+            }
+        }
+        return greaterThanOrEqualToStartTime && lessThanEndTime
+    }
+
+    func parseDate(dateStr: String?) -> NSDate? {
+        let dateFormatter = NSDateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+        dateFormatter.timeZone = NSTimeZone(name: "UTC")
+        return dateFormatter.dateFromString(dateStr!)
     }
 
     func notifyAbout(_ geo: JSON) {
