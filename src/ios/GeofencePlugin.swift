@@ -389,9 +389,9 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
         log("Monitoring region " + region!.identifier + " failed \(error)" )
     }
 
-    func handleTransition(region: CLRegion!, transitionType: Int) {
+    func handleTransition(_ region: CLRegion!, transitionType: Int) {
         if var geoNotification = store.findById(region.identifier) {
-            if isWithinTimeRange(geoNotification) {
+            if isWithinTimeRange(geoNotification: geoNotification) {
                 geoNotification["transitionType"].int = transitionType
 
                 if geoNotification["notification"].isExists() {
@@ -440,27 +440,27 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
     }
 
     func isWithinTimeRange(geoNotification: JSON) -> Bool {
-        let now = NSDate()
+        let now = Date()
         var greaterThanOrEqualToStartTime: Bool = true
         var lessThanEndTime: Bool = true
         if geoNotification["startTime"].isExists() {
-            if let startTime = parseDate(geoNotification["startTime"].string) {
-                greaterThanOrEqualToStartTime = (now.compare(startTime) == NSComparisonResult.OrderedDescending || now.compare(startTime) == NSComparisonResult.OrderedSame)
+            if let startTime = parseDate(dateStr: geoNotification["startTime"].stringValue) {
+                greaterThanOrEqualToStartTime = (now.compare(startTime) == ComparisonResult.orderedDescending || now.compare(startTime) == ComparisonResult.orderedSame)
             }
         }
         if geoNotification["endTime"].isExists() {
-            if let endTime = parseDate(geoNotification["endTime"].string) {
-                lessThanEndTime = now.compare(endTime) == NSComparisonResult.OrderedAscending
+            if let endTime = parseDate(dateStr: geoNotification["endTime"].stringValue) {
+                lessThanEndTime = now.compare(endTime) == ComparisonResult.orderedAscending
             }
         }
         return greaterThanOrEqualToStartTime && lessThanEndTime
     }
 
-    func parseDate(dateStr: String?) -> NSDate? {
-        let dateFormatter = NSDateFormatter()
+    func parseDate(dateStr: String?) -> Date? {
+        let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-        dateFormatter.timeZone = NSTimeZone(name: "UTC")
-        return dateFormatter.dateFromString(dateStr!)
+        dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return dateFormatter.date(from: dateStr!)
     }
 
     func notifyAbout(_ geo: JSON) {
