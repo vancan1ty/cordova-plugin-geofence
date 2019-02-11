@@ -394,7 +394,7 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
             if isWithinTimeRange(geoNotification: geoNotification) {
                 geoNotification["transitionType"].int = transitionType
 
-                if geoNotification["notification"].isExists() {
+                if geoNotification["notification"].isExists() && canBeTriggered(geo: geoNotification) {
                     notifyAbout(geoNotification)
                 }
 
@@ -437,6 +437,20 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
                 NotificationCenter.default.post(name: Notification.Name(rawValue: "handleTransition"), object: geoNotification.rawString(String.Encoding.utf8.rawValue, options: []))
             }
         }
+    }
+
+    func canBeTriggered(geo: JSON) -> Bool {
+        let store = GeoNotificationStore()
+        if(geo["notification"]["lastTriggered"].isExists() && geo["notification"]["frequency"].isExists()) {
+            if(Int(NSDate().timeIntervalSince1970) < geo["notification"]["lastTriggered"].int! + geo["notification"]["frequency"].int!) {
+                log("Frequency control. Skip notification")
+                return false
+            }
+        }
+        var geoCopy = geo
+        geoCopy["notification"]["lastTriggered"] = JSON(NSDate().timeIntervalSince1970)
+        store.update(geoCopy)
+        return true
     }
 
     func isWithinTimeRange(geoNotification: JSON) -> Bool {

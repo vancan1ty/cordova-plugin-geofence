@@ -6,6 +6,9 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.support.v4.app.NotificationCompat;
 
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
+
 import com.google.gson.annotations.Expose;
 
 public class Notification {
@@ -21,6 +24,8 @@ public class Notification {
     @Expose public String color;
     @Expose public Object data;
     @Expose public boolean openAppOnClick;
+    @Expose public int frequency = 0;
+    @Expose public long lastTriggered = 0;
 
     public void setContext(Context context) {
         this.context = context;
@@ -96,6 +101,16 @@ public class Notification {
 
     public long[] getVibrate() {
         return concat(new long[] {0}, vibrate);
+    }
+
+    public void setLastTriggered() {
+        Date now = new Date();
+        this.lastTriggered = now.getTime();
+    }
+
+    public boolean canBeTriggered() {
+        Date now = new Date();
+        return now.getTime() >= this.lastTriggered + TimeUnit.SECONDS.toMillis(this.frequency);
     }
 
     public String toString() {

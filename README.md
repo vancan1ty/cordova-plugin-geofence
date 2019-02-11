@@ -175,23 +175,24 @@ If required permissions are not granted then initialization fails with error mes
 
 ```javascript
 window.geofence.addOrUpdate({
-    id:             String, //A unique identifier of geofence
-    latitude:       Number, //Geo latitude of geofence
-    longitude:      Number, //Geo longitude of geofence
-    radius:         Number, //Radius of geofence in meters
-    transitionType: Number, //Type of transition 1 - Enter, 2 - Exit, 3 - Both
-    startTime:      Date,   //Optional JavaScript Date object for when the geofence should become enabled (iOS and Android only)
-    endTime:        Date,   //Optional JavaScript Date object for when the geofence should become disabled (iOS and Android only)
-    notification: {         //Notification object
-        id:             Number, //optional should be integer, id of notification
-        title:          String, //Title of notification
-        text:           String, //Text of notification
-        smallIcon:      String, //Small icon showed in notification area, only res URI
-        icon:           String, //icon showed in notification drawer
-        color:          String, //Notification color, only hex
-        openAppOnClick: Boolean,//is main app activity should be opened after clicking on notification
-        vibration:      [Integer], //Optional vibration pattern - see description
-        data:           Object  //Custom object associated with notification
+    id:             String,         // A unique identifier of geofence
+    latitude:       Number,         // Geo latitude of geofence
+    longitude:      Number,         // Geo longitude of geofence
+    radius:         Number,         // Radius of geofence in meters
+    transitionType: Number,         // Type of transition 1 - Enter, 2 - Exit, 3 - Both
+    startTime:      Date,           // (Optional) JavaScript Date object for when the geofence should become enabled (iOS and Android only)
+    endTime:        Date,           // (Optional) JavaScript Date object for when the geofence should become disabled (iOS and Android only)
+    notification: {                 // Notification object
+        id:             Number,     // (Optional) should be integer, id of notification
+        title:          String,     // Title of notification
+        text:           String,     // Text of notification
+        smallIcon:      String,     // Small icon showed in notification area, only res URI
+        icon:           String,     // icon showed in notification drawer
+        color:          String,     // Notification color, only hex
+        openAppOnClick: Boolean,    // is main app activity should be opened after clicking on notification
+        frequency:      Number,     // (Optional) Seconds required between retriggering a fence.
+        vibration:      [Integer],  // (Optional) vibration pattern - see description
+        data:           Object      // (Optional) Custom object associated with notification
     }
 }).then(function () {
     console.log('Geofence successfully added');
@@ -380,7 +381,8 @@ window.geofence.addOrUpdate({
         id:             1,
         title:          "Welcome in Gliwice",
         text:           "You just arrived to Gliwice city center.",
-        openAppOnClick: true
+        openAppOnClick: true,
+        frequency:      60
     }
 }).then(function () {
     console.log('Geofence successfully added');

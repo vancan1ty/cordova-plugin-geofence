@@ -89,7 +89,8 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
 
                 if (geoNotifications.size() > 0) {
                     for (GeoNotification geoNotification : geoNotifications) {
-                        if (geoNotification.notification != null) {
+                        if (geoNotification.notification != null && geoNotification.notification.canBeTriggered()) {
+                            geoNotification.notification.setLastTriggered();
                             notifier.notify(geoNotification.notification,
                                     transitionType == Geofence.GEOFENCE_TRANSITION_ENTER ? "enter" : "exit");
                         }
