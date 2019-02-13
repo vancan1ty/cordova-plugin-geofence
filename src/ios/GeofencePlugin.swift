@@ -9,6 +9,7 @@
 import Foundation
 import AudioToolbox
 import WebKit
+import UserNotifications
 
 let TAG = "GeofencePlugin"
 let iOS8 = floor(NSFoundationVersionNumber) > floor(NSFoundationVersionNumber_iOS_7_1)
@@ -479,25 +480,47 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
 
     func notifyAbout(_ geo: JSON) {
         log("Creating notification")
-        let notification = UILocalNotification()
-        notification.timeZone = TimeZone.current
-        let dateTime = Date()
-        notification.fireDate = dateTime
-        notification.soundName = UILocalNotificationDefaultSoundName
-        if let title = geo["notification"]["title"] as JSON? {
-            notification.alertTitle = title.stringValue
-        }
-        if let text = geo["notification"]["text"] as JSON? {
-            notification.alertBody = text.stringValue
-        }
-        if let json = geo["notification"]["data"] as JSON? {
-            notification.userInfo = ["geofence.notification.data": json.rawString(String.Encoding.utf8.rawValue, options: [])!]
-        }
-        UIApplication.shared.scheduleLocalNotification(notification)
-
-        if let vibrate = geo["notification"]["vibrate"].array {
-            if (!vibrate.isEmpty && vibrate[0].intValue > 0) {
-                AudioServicesPlayAlertSound(SystemSoundID(kSystemSoundID_Vibrate))
+        if #available(iOS 10.0, *) {
+            let content = UNMutableNotificationContent()
+            if let title = geo["notification"]["title"] as JSON? {
+                content.title = title.stringValue
+            }
+            if let text = geo["notification"]["text"] as JSON? {
+                content.body = text.stringValue
+            }
+            content.sound = UNNotificationSound.default()
+            if let json = geo["notification"]["data"] as JSON? {
+                content.userInfo = ["geofence.notification.data": json.rawString(String.Encoding.utf8.rawValue, options: [])!]
+            }
+            let identifier = "geofence.notification"
+            let request = UNNotificationRequest(identifier: identifier,
+                                                content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request, withCompletionHandler: { (error) in
+                if error != nil {
+                    log("Couldn't create notification")
+                }
+            })
+        } else {
+            // Earlier versions
+            let notification = UILocalNotification()
+            notification.timeZone = TimeZone.current
+            let dateTime = Date()
+            notification.fireDate = dateTime
+            notification.soundName = UILocalNotificationDefaultSoundName
+            if let title = geo["notification"]["title"] as JSON? {
+                notification.alertTitle = title.stringValue
+            }
+            if let text = geo["notification"]["text"] as JSON? {
+                notification.alertBody = text.stringValue
+            }
+            if let json = geo["notification"]["data"] as JSON? {
+                notification.userInfo = ["geofence.notification.data": json.rawString(String.Encoding.utf8.rawValue, options: [])!]
+            }
+            UIApplication.shared.scheduleLocalNotification(notification)
+            if let vibrate = geo["notification"]["vibrate"].array {
+                if (!vibrate.isEmpty && vibrate[0].intValue > 0) {
+                    AudioServicesPlayAlertSound(SystemSoundID(kSystemSoundID_Vibrate))
+                }
             }
         }
     }
