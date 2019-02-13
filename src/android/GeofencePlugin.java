@@ -1,5 +1,6 @@
 package com.cowbell.cordova.geofence;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -16,6 +17,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,7 +31,8 @@ public class GeofencePlugin extends CordovaPlugin {
 
     private GeoNotificationManager geoNotificationManager;
     private Context context;
-    public static CordovaWebView webView = null;
+
+    private static WeakReference<CordovaWebView> webView = null;
 
     private class Action {
         public String action;
@@ -55,7 +58,7 @@ public class GeofencePlugin extends CordovaPlugin {
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
-        GeofencePlugin.webView = webView;
+        GeofencePlugin.webView = new WeakReference<CordovaWebView>(webView);
         context = this.cordova.getActivity().getApplicationContext();
         Logger.setLogger(new Logger(TAG, context, false));
         geoNotificationManager = new GeoNotificationManager(context);
@@ -113,23 +116,14 @@ public class GeofencePlugin extends CordovaPlugin {
         Log.d(TAG, "Transition Event Received!");
         String js = "setTimeout('geofence.onTransitionReceived("
             + Gson.get().toJson(notifications) + ")',0)";
-        if (webView == null) {
-            Log.d(TAG, "Webview is null");
-        } else {
-            webView.sendJavascript(js);
-        }
+        sendJavascript(js);
     }
 
     private void deviceReady() {
         Intent intent = cordova.getActivity().getIntent();
         String data = intent.getStringExtra("geofence.notification.data");
         String js = "setTimeout('geofence.onNotificationClicked(" + data + ")',0)";
-
-        if (data == null) {
-            Log.d(TAG, "No notifications clicked.");
-        } else {
-            webView.sendJavascript(js);
-        }
+        sendJavascript(js);
     }
 
     private void initialize(CallbackContext callbackContext) {
@@ -171,5 +165,21 @@ public class GeofencePlugin extends CordovaPlugin {
             execute(executedAction);
             executedAction = null;
         }
+    }
+
+    private static synchronized void sendJavascript(final String js) {
+
+        if (webView == null) {
+            Log.e(TAG, "Device isn't ready.");
+            return;
+        }
+
+        final CordovaWebView view = webView.get();
+
+        ((Activity)(view.getContext())).runOnUiThread(new Runnable() {
+            public void run() {
+                view.loadUrl("javascript:" + js);
+            }
+        });
     }
 }
