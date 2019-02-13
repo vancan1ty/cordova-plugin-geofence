@@ -122,8 +122,10 @@ public class GeofencePlugin extends CordovaPlugin {
     private void deviceReady() {
         Intent intent = cordova.getActivity().getIntent();
         String data = intent.getStringExtra("geofence.notification.data");
-        String js = "setTimeout('geofence.onNotificationClicked(" + data + ")',0)";
-        sendJavascript(js);
+        if (data != null) {
+            String js = "setTimeout('geofence.onNotificationClicked(" + data + ")',0)";
+            sendJavascript(js);
+        }
     }
 
     private void initialize(CallbackContext callbackContext) {
