@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.util.Log;
 import android.Manifest;
+import android.app.NotificationManager;
+
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
@@ -65,11 +67,17 @@ public class GeofencePlugin extends CordovaPlugin {
     }
 
     @Override
+    public void onNewIntent(Intent intent) {
+        String data = intent.getStringExtra("geofence.notification.data");
+        if (data != null) {
+            deviceReady(data);
+        }
+    }
+
+    @Override
     public boolean execute(final String action, final JSONArray args,
                            final CallbackContext callbackContext) throws JSONException {
-        Log.d(TAG, "GeofencePlugin execute action: " + action + " args: " + args.toString());
         executedAction = new Action(action, args, callbackContext);
-
         cordova.getThreadPool().execute(new Runnable() {
             public void run() {
                 if (action.equals("addOrUpdate")) {
@@ -92,10 +100,19 @@ public class GeofencePlugin extends CordovaPlugin {
                 } else if (action.equals("getWatched")) {
                     List<GeoNotification> geoNotifications = geoNotificationManager.getWatched();
                     callbackContext.success(Gson.get().toJson(geoNotifications));
+                } else if (action.equals("dismissNotifications")) {
+                    NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                    for (int i = 0; i < args.length(); i++) {
+                        manager.cancel(args.optInt(i));
+                    }
                 } else if (action.equals("initialize")) {
                     initialize(callbackContext);
                 } else if (action.equals("deviceReady")) {
-                    deviceReady();
+                    Intent intent = cordova.getActivity().getIntent();
+                    String data = intent.getStringExtra("geofence.notification.data");
+                    if (data != null) {
+                        deviceReady(data);
+                    }
                 }
             }
         });
@@ -119,9 +136,7 @@ public class GeofencePlugin extends CordovaPlugin {
         sendJavascript(js);
     }
 
-    private void deviceReady() {
-        Intent intent = cordova.getActivity().getIntent();
-        String data = intent.getStringExtra("geofence.notification.data");
+    private void deviceReady(String data) {
         if (data != null) {
             String js = "setTimeout('geofence.onNotificationClicked(" + data + ")',0)";
             sendJavascript(js);

@@ -99,6 +99,23 @@ module.exports = {
         return execPromise(success, error, "GeofencePlugin", "getWatched", []);
     },
     /**
+     * Removes notifications
+     *
+     * @name  dismissNotifications
+     * @param  {Number|Array} id
+     * @return {void}
+     */
+    dismissNotifications: function (locationId) {
+        if (!Array.isArray(locationId)) {
+            locationId = [locationId];
+        }
+        exec(null,
+            null,
+            "GeofencePlugin",
+            "dismissNotifications",
+            locationId);
+    },
+    /**
      * Called when app is opened via Notification bar
      *
      * @name onNotificationClicked
