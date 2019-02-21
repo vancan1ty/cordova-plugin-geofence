@@ -142,7 +142,7 @@ func log(_ messages: [String]) {
         }
     }
 
-    func didReceiveTransition (_ notification: Notification) {
+    @objc func didReceiveTransition (_ notification: Notification) {
         log("didReceiveTransition")
         if let geoNotificationString = notification.object as? String {
 
@@ -152,9 +152,9 @@ func log(_ messages: [String]) {
         }
     }
 
-    func didReceiveLocalNotification (_ notification: Notification) {
+    @objc func didReceiveLocalNotification (_ notification: Notification) {
         log("didReceiveLocalNotification")
-        if UIApplication.shared.applicationState != UIApplicationState.active {
+        if UIApplication.shared.applicationState != UIApplication.State.active {
             var data = "undefined"
             if let uiNotification = notification.object as? UILocalNotification {
                 if let notificationData = uiNotification.userInfo?["geofence.notification.data"] as? String {
@@ -298,11 +298,9 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
                     if !notificationSettings.types.contains(.sound) {
                         warnings.append("Warning: notification settings - sound permission missing")
                     }
-
                     if !notificationSettings.types.contains(.alert) {
                         warnings.append("Warning: notification settings - alert permission missing")
                     }
-
                     if !notificationSettings.types.contains(.badge) {
                         warnings.append("Warning: notification settings - badge permission missing")
                     }
@@ -311,9 +309,7 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
                 errors.append("Error: notification permission missing")
             }
         }
-
         let ok = (errors.count == 0)
-
         return (ok, warnings, errors)
     }
 
@@ -359,7 +355,7 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
     }
 
     func locationManager(_ manager: CLLocationManager, didFinishDeferredUpdatesWithError error: Error?) {
-        log("deferred fail error: \(error)")
+        log("deferred fail error: \(String(describing: error))")
     }
 
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
@@ -535,7 +531,7 @@ class GeoNotificationStore {
         let (tables, err) = SD.existingTables()
 
         if (err != nil) {
-            log("Cannot fetch sqlite tables: \(err)")
+            log("Cannot fetch sqlite tables: \(String(describing: err))")
             return
         }
 
@@ -566,7 +562,7 @@ class GeoNotificationStore {
             withArgs: [id as AnyObject, geoNotification.description as AnyObject])
 
         if err != nil {
-            log("Error while adding \(id) GeoNotification: \(err)")
+            log("Error while adding \(id) GeoNotification: \(String(describing: err))")
         }
     }
 
@@ -576,7 +572,7 @@ class GeoNotificationStore {
             withArgs: [geoNotification.description as AnyObject, id as AnyObject])
 
         if err != nil {
-            log("Error while adding \(id) GeoNotification: \(err)")
+            log("Error while adding \(id) GeoNotification: \(String(describing: err))")
         }
     }
 
@@ -585,7 +581,7 @@ class GeoNotificationStore {
 
         if err != nil {
             //there was an error during the query, handle it here
-            log("Error while fetching \(id) GeoNotification table: \(err)")
+            log("Error while fetching \(id) GeoNotification table: \(String(describing: err))")
             return nil
         } else {
             if (resultSet.count > 0) {
@@ -603,7 +599,7 @@ class GeoNotificationStore {
 
         if err != nil {
             //there was an error during the query, handle it here
-            log("Error while fetching from GeoNotifications table: \(err)")
+            log("Error while fetching from GeoNotifications table: \(String(describing: err))")
             return nil
         } else {
             var results = [JSON]()
@@ -620,7 +616,7 @@ class GeoNotificationStore {
         let err = SD.executeChange("DELETE FROM GeoNotifications WHERE Id = ?", withArgs: [id as AnyObject])
 
         if err != nil {
-            log("Error while removing \(id) GeoNotification: \(err)")
+            log("Error while removing \(id) GeoNotification: \(String(describing: err))")
         }
     }
 
@@ -628,7 +624,7 @@ class GeoNotificationStore {
         let err = SD.executeChange("DELETE FROM GeoNotifications")
 
         if err != nil {
-            log("Error while deleting all from GeoNotifications: \(err)")
+            log("Error while deleting all from GeoNotifications: \(String(describing: err))")
         }
     }
 }
