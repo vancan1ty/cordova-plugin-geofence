@@ -102,18 +102,33 @@ module.exports = {
      * Removes notifications
      *
      * @name  dismissNotifications
-     * @param  {Number|Array} id
+     * @param  {Number|Array} ids
      * @return {void}
      */
-    dismissNotifications: function (locationId) {
-        if (!Array.isArray(locationId)) {
-            locationId = [locationId];
+    dismissNotifications: function (ids) {
+        if (!Array.isArray(ids)) {
+            ids = [ids];
         }
         exec(null,
             null,
             "GeofencePlugin",
             "dismissNotifications",
-            locationId);
+            ids);
+    },
+    /**
+     * Snoozes geofences
+     *
+     * @name  snooze
+     * @param  {Number} id
+     * @param  {Number} duration
+     * @return {void}
+     */
+    snooze: function (id, duration) {
+        exec(null,
+            null,
+            "GeofencePlugin",
+            "snooze",
+            [id, duration]);
     },
     /**
      * Called when app is opened via Notification bar

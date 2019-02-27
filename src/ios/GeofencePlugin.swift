@@ -141,6 +141,19 @@ func log(_ messages: [String]) {
         }
     }
 
+    func snooze(_ command: CDVInvokedUrlCommand) {
+        DispatchQueue.global(qos: priority).async {
+            if let id = command.arguments[0] as? String,
+                let duration = command.arguments[1] as? Double {
+                self.geoNotificationManager.snoozeFence(id, duration: duration)
+            }
+            DispatchQueue.main.async {
+                let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK)
+                self.commandDelegate!.send(pluginResult, callbackId: command.callbackId)
+            }
+        }
+    }
+
     @objc func didReceiveTransition (_ notification: Notification) {
         log("didReceiveTransition")
         if let geoNotificationString = notification.object as? String {
@@ -227,6 +240,7 @@ class GeofenceFaker {
 class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
     let locationManager = CLLocationManager()
     let store = GeoNotificationStore()
+    var snoozedFences = [String : Double]()
 
     override init() {
         log("GeoNotificationManager init")
@@ -390,7 +404,8 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
     }
 
     func handleTransition(_ region: CLRegion!, transitionType: Int) {
-        if var geoNotification = store.findById(region.identifier) {
+        if var geoNotification = store.findById(region.identifier),
+            !isSnoozed(geoNotification["id"].string) {
             geoNotification["transitionType"].int = transitionType
 
             if geoNotification["notification"].isExists() {
@@ -455,6 +470,17 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
                 AudioServicesPlayAlertSound(SystemSoundID(kSystemSoundID_Vibrate))
             }
         }
+    }
+
+    func snoozeFence(_ id: String, duration: Double) {
+        snoozedFences[id] = NSTimeIntervalSince1970 + duration
+    }
+
+    func isSnoozed(_ id: String?) -> Bool {
+        guard let id = id, let fenceTime = snoozedFences[id] else {
+            return false
+        }
+        return fenceTime > NSTimeIntervalSince1970
     }
 }
 

@@ -13,21 +13,12 @@ import android.util.Log;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingEvent;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.ConnectException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
-
-import javax.net.ssl.HttpsURLConnection;
 
 // https://codelabs.developers.google.com/codelabs/background-location-updates-android-o/#4
 public class ReceiveTransitionsReceiver extends BroadcastReceiver {
@@ -77,7 +68,7 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                 GeoNotification geoNotification = store
                         .getGeoNotification(fenceId);
 
-                if (geoNotification != null) {
+                if (geoNotification != null && !GeofencePlugin.isSnoozed(geoNotification.id)) {
                     geoNotification.transitionType = transitionType;
                     geoNotifications.add(geoNotification);
                 }
@@ -129,7 +120,7 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                     bundle.putString("url", geoNotification.url);
                     bundle.putString("authorization", geoNotification.authorization);
                     bundle.putString("transition", transition);
-					
+
 					TimeZone tz = TimeZone.getTimeZone("UTC");
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 					df.setTimeZone(tz);
