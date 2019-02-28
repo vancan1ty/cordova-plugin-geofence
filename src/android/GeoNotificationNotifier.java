@@ -60,7 +60,7 @@ public class GeoNotificationNotifier {
 
             PendingIntent resultPendingIntent =
                     PendingIntent.getActivity(context,
-                            1001,
+                            notification.id,
                             resultIntent,
                             PendingIntent.FLAG_UPDATE_CURRENT
                     );
