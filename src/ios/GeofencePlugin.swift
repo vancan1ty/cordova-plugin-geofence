@@ -158,7 +158,7 @@ func log(_ messages: [String]) {
         log("didReceiveTransition")
         if let geoNotificationString = notification.object as? String {
 
-            let js = "setTimeout('geofence.onTransitionReceived([" + geoNotificationString + "])',0)"
+            let js = "setTimeout('geofence.onTransitionReceived([" + geoNotificationString.replacingOccurrences(of: "'", with: "\\'") + "])',0)"
 
             evaluateJs(js)
         }
