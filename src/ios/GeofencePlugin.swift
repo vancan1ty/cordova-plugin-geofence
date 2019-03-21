@@ -53,10 +53,10 @@ func log(_ messages: [String]) {
 
         if iOS8 {
             promptForNotificationPermission()
+            geoNotificationManager.registerPermissions()
         }
-
-        geoNotificationManager.registerPermissions()
         geoNotificationManager.isActive = true
+        geoNotificationManager.startUpdatingLocation()
 
         let (ok, warnings, errors) = geoNotificationManager.checkRequirements()
 
@@ -278,9 +278,10 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate, UNUserNotifi
     }
 
     func registerPermissions() {
-        if iOS8 {
-            locationManager.requestAlwaysAuthorization()
-        }
+        locationManager.requestAlwaysAuthorization()
+    }
+
+    func startUpdatingLocation() {
         locationManager.startUpdatingLocation()
         locationManager.startMonitoringSignificantLocationChanges()
     }
@@ -329,8 +330,12 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate, UNUserNotifi
 
         let authStatus = CLLocationManager.authorizationStatus()
 
-        if (authStatus != CLAuthorizationStatus.authorizedAlways) {
-            errors.append("Warning: Location always permissions not granted")
+        if authStatus != .authorizedAlways {
+            if authStatus != .authorizedWhenInUse {
+                errors.append("Error: Location when in use permissions not granted")
+            } else {
+                warnings.append("Warning: Location always permissions not granted")
+            }
         }
 
         if iOS8 {
@@ -576,7 +581,6 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate, UNUserNotifi
     func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
         log("Monitoring region " + region!.identifier + " failed \(error)" )
     }
-
 
     @available(iOS 10.0, *)
     func userNotificationCenter(_ center: UNUserNotificationCenter,
