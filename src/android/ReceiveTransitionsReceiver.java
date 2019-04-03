@@ -81,9 +81,12 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
                 if (geoNotifications.size() > 0) {
                     for (GeoNotification geoNotification : geoNotifications) {
                         if (geoNotification.notification != null && geoNotification.notification.canBeTriggered()) {
-                            geoNotification.notification.setLastTriggered();
+                            this.updateLastTriggeredByNotificationId(geoNotification.notification.id, geoNotifications);
                             notifier.notify(geoNotification.notification,
                                     transitionType == Geofence.GEOFENCE_TRANSITION_ENTER ? "enter" : "exit");
+                            logger.log(Log.DEBUG, "Notification sent");
+                        } else {
+                            logger.log(Log.DEBUG, "Frequency control. Skip notification");
                         }
                     }
 
@@ -141,6 +144,17 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
             }
         }
 
+    }
+
+    private void updateLastTriggeredByNotificationId(int id, List<GeoNotification> geoList) {
+        if (geoList != null) {
+            for (GeoNotification geo : geoList) {
+                if (geo.notification != null && geo.notification.id == id) {
+                    geo.notification.setLastTriggered();
+                    store.setGeoNotification(geo);
+                }
+            }
+        }
     }
 
 }

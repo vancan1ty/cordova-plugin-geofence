@@ -456,9 +456,7 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate, UNUserNotifi
                 return false
             }
         }
-        var geoCopy = geo
-        geoCopy["notification"]["lastTriggered"] = JSON(NSDate().timeIntervalSince1970)
-        store.update(geoCopy)
+        store.updateLastTriggeredByNotificationId(geo["notification"]["id"].stringValue)
         return true
     }
     
@@ -711,6 +709,17 @@ class GeoNotificationStore {
         }
     }
     
+    func updateLastTriggeredByNotificationId(_ id: String) {
+        if let allStored = getAll() {
+            for var json in allStored {
+                if json["notification"]["id"].stringValue == id {
+                    json["notification"]["lastTriggered"] = JSON(NSDate().timeIntervalSince1970)
+                    update(json)
+                }
+            }
+        }
+    }
+
     func findById(_ id: String) -> JSON? {
         let (resultSet, err) = SD.executeQuery("SELECT * FROM GeoNotifications WHERE Id = ?", withArgs: [id as AnyObject])
         
