@@ -691,8 +691,10 @@ class GeoNotificationStore {
     
     func add(_ geoNotification: JSON) {
         let id = geoNotification["id"].stringValue
+        var notificationCopy = geoNotification
+        notificationCopy["lastTriggered"] = 0
         let err = SD.executeChange("INSERT INTO GeoNotifications (Id, Data) VALUES(?, ?)",
-                                   withArgs: [id as AnyObject, geoNotification.description as AnyObject])
+                                   withArgs: [id as AnyObject, notificationCopy.description as AnyObject])
         
         if err != nil {
             log("Error while adding \(id) GeoNotification: \(String(describing: err))")
