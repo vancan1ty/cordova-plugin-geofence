@@ -628,6 +628,9 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate, UNUserNotifi
         if notification.request.content.userInfo["geofence.notification.data"] != nil {
             // Play sound and show alert to the user if it is a geofence notification
             completionHandler([.alert,.sound])
+        } else if (notification.request.content.userInfo["foreground"] != nil) {
+            // Play sound and show alert to the user if the notification has foreground property
+            completionHandler([.alert,.sound])
         } else {
             completionHandler([])
         }
