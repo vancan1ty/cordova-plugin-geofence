@@ -41,7 +41,7 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
         Logger.setLogger(new Logger(GeofencePlugin.TAG, context, false));
         Logger logger = Logger.getLogger();
         logger.log(Log.DEBUG, "ReceiveTransitionsIntentService - onHandleIntent");
-        //Intent broadcastIntent = new Intent(GeofenceTransitionIntent);
+        Intent broadcastIntent = new Intent(GeofenceTransitionIntent);
         notifier = new GeoNotificationNotifier(
                 (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE),
                 context
@@ -107,7 +107,6 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
             }
 
 
-            //sendBroadcast(broadcastIntent);
 
             for (GeoNotification geoNotification : geoNotifications) {
                 if (geoNotification.url != null) {
@@ -144,6 +143,7 @@ public class ReceiveTransitionsReceiver extends BroadcastReceiver {
             }
         }
 
+        sendBroadcast(broadcastIntent);
     }
 
     private void updateLastTriggeredByNotificationId(int id, List<GeoNotification> geoList) {
